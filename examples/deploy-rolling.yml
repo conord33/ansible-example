@@ -1,0 +1,33 @@
+---
+
+# common
+- hosts: all
+  become: yes
+  gather_facts: no
+  roles:
+    - common
+
+# web
+- hosts: web
+  become: yes
+  vars:
+    web_title: "Ansible Demo Rolling Deployment"
+  serial: 1
+  pre_tasks:
+    - name: disable server in haproxy
+      shell: echo "disable server episode46/{{ inventory_hostname }}" | socat stdio /var/lib/haproxy/stats
+      delegate_to: "{{ item }}"
+      with_items: groups.lb
+  roles:
+    - web
+  post_tasks:
+    - name: enable server in haproxy
+      shell: echo "enable server episode46/{{ inventory_hostname }}" | socat stdio /var/lib/haproxy/stats
+      delegate_to: "{{ item }}"
+      with_items: groups.lb
+
+# lb
+- hosts: lb
+  become: yes
+  roles:
+    - lb
